@@ -1,0 +1,42 @@
+name: ollama
+
+services:
+  ollama: &ollama
+    image: ollama/ollama:0.5.7
+    profiles: ["cpu"]
+    restart: unless-stopped
+    ports:
+      - 11434:11434
+    environment:
+      - OLLAMA_ORIGINS=*
+    volumes:
+      - ollama:/root/.ollama
+
+  ollama-gpu:
+    <<: *ollama
+    profiles: ["gpu"]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ["0"]
+              capabilities: [gpu]
+
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:v0.5.7
+    restart: unless-stopped
+    ports:
+      - 8080:8080
+    volumes:
+      - open-webui:/app/backend/data 
+    environment:
+      # Disable authentication
+      - WEBUI_AUTH=False
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  ollama:
+  open-webui:
